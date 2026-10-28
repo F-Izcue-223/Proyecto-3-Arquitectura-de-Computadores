@@ -1,0 +1,10 @@
+# Generados al simular / correr LibreLane (se regeneran con make / scripts)
+build/
+librelane/runs/
+librelane/views_*/
+librelane/resumen_corridas.csv
+__pycache__/
+*.pyc
+*.vcd
+# Copia completa de las corridas (cientos de MB): la evidencia curada esta en resultados/
+resultados_librelane/
