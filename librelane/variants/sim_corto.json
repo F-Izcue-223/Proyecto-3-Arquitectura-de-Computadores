@@ -1,0 +1,20 @@
+{
+  "VERILOG_FILES": [
+    "dir::../rtl_asic/asic_top.v",
+    "dir::../rtl_asic/pochoco_soc.v",
+    "dir::../rtl_asic/pochoco_periph.v",
+    "dir::../rtl_asic/pochoco_cycle_counter.v",
+    "dir::../rtl_asic/pochoco_spi_slave.v",
+    "dir::../rtl_asic/pochoco_dram.v",
+    "dir::../rtl_asic/pochoco_mem_rom.v",
+    "dir::../sim_asic/gen_game/game_rom.v",
+    "dir::../rtl_asic/espino_core/espino_alu.v",
+    "dir::../rtl_asic/espino_core/espino_controller.v",
+    "dir::../rtl_asic/espino_core/espino_core.v",
+    "dir::../rtl_asic/espino_core/espino_decoder.v",
+    "dir::../rtl_asic/espino_core/espino_id_stage.v",
+    "dir::../rtl_asic/espino_core/espino_if_stage.v",
+    "dir::../rtl_asic/espino_core/espino_load_store_unit.v",
+    "dir::../rtl_asic/espino_core/espino_register_file.v"
+  ]
+}
