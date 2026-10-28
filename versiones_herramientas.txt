@@ -1,0 +1,23 @@
+imagen: ghcr.io/librelane/librelane:3.0.17
+== openroad
+/nix/store/acqm3cm6m4bj83ygn6ynjksl920zz9zx-openroad-2026-02-17-python3-3.13.9-env/bin/openroad
+dcf36133a369abc8f3c5e5738cd4d82e4903c0e0 
+== yosys
+/nix/store/vqq4mi8prw8x5rfwz7b3136rqi8v70m7-yosys-with-plugins-0.62-python3-3.13.9-env/bin/yosys
+Error parsing options: Argument 'ersion' failed to parse
+Run '/nix/store/4bmfi4470w0i3ixcaidfki18d3fyqvva-yosys-with-plugins-0.62/bin/yosys --help' for help.
+== klayout
+/nix/store/1pkfh3p98m8i3jp642n3bznpjfq65i6m-python3-3.13.9-env/bin/klayout
+Info: Could not load the Qt platform plugin "xcb" in "" even though it was found.
+Fatal: This application failed to start because no Qt platform plugin could be initialized. Reinstalling the application may fix this problem.
+== magic
+/nix/store/j5xkcxc7k086spj4lilnd5w6b772f439-magic-vlsi-8.3.623/bin/magic
+application-specific initialization failed: no display name and no $DISPLAY environment variable
+Error in startup script: no display name and no $DISPLAY environment variable
+== netgen
+/nix/store/kw3frc6fbv3zi2m9n0wv93y1nfiyjiy6-netgen-1.5.316/bin/netgen
+application-specific initialization failed: no display name and no $DISPLAY environment variable
+Error in startup script: no display name and no $DISPLAY environment variable
+== sta
+/nix/store/g119ksxxjhq190g79gkbqbpbg9zmvp0m-opensta/bin/sta
+2.7.0
