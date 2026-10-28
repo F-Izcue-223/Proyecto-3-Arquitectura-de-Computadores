@@ -1,0 +1,11 @@
+# Sintesis generica (sin biblioteca GF180) para la simulacion post-sintesis en la nube.
+# En el computador del alumno se usa la netlist real de LibreLane (ver README).
+read_verilog -I sim_asic/gen_game rtl_asic/asic_top.v rtl_asic/pochoco_soc.v rtl_asic/pochoco_periph.v rtl_asic/pochoco_cycle_counter.v rtl_asic/pochoco_spi_slave.v rtl_asic/pochoco_dram.v rtl_asic/pochoco_mem_rom.v rtl_asic/pochoco_mem_ff.v sim_asic/gen_game/game_rom.v rtl_asic/espino_core/espino_alu.v rtl_asic/espino_core/espino_controller.v rtl_asic/espino_core/espino_core.v rtl_asic/espino_core/espino_decoder.v rtl_asic/espino_core/espino_id_stage.v rtl_asic/espino_core/espino_if_stage.v rtl_asic/espino_core/espino_load_store_unit.v rtl_asic/espino_core/espino_register_file.v
+hierarchy -top asic_top
+synth -flatten -top asic_top
+techmap
+dfflegalize -cell $_DFF_P_ x -cell $_DFF_PN0_ x -cell $_DFF_PN1_ x -cell $_DFFE_PP_ x -cell $_DFFE_PN0P_ x
+abc -g AND,NAND,OR,NOR,XOR,XNOR,MUX
+opt_clean -purge
+tee -o sim_asic/postsynth/stat_generic.txt stat
+write_verilog -noattr sim_asic/postsynth/asic_top_netlist.v
