@@ -376,7 +376,7 @@ El módulo con mayor área es el \textbf{register file} (45,3 \%), con 544 flip-
 
 \subsection{Comparación con lo esperado}
 
-Antes de sintetizar se estimó, a partir del RTL, que el área estaría dominada por el almacenamiento y que el módulo más grande sería el register file. En el RTL de ASIC el register file guarda 15 registros de 32 bits (\code{x1} a \code{x15}; \code{x0} no se almacena) y tiene lectura síncrona con dos puertos de salida registrados, por lo que se esperaban $15\cdot 32 + 2\cdot 32 = 544$ flip-flops. Con 63,7 $\mu$m$^2$ por \code{dffq\_1} (55.400 $\mu$m$^2$ entre 870 celdas), eso da $\approx$34.650 $\mu$m$^2$. A esto se suman los multiplexores de escritura (un \code{mux2} de 32,9 $\mu$m$^2$ por cada uno de los 480 bits de almacenamiento, $\approx$15.800 $\mu$m$^2$) y los de lectura (dos puertos de 32 bits, cada bit un multiplexor de 15 a 1 de $\approx$5 \code{mux4} de 70,2 $\mu$m$^2$, $\approx$22.500 $\mu$m$^2$). La suma, $\approx$72.950 $\mu$m$^2$, coincide con los 73.656 $\mu$m$^2$ del reporte (diferencia de 1 \%), y el recuento de 544 flip-flops \code{dffq} es exacto.
+A partir del RTL se podía anticipar que el área estaría dominada por el almacenamiento y que el módulo más grande sería el register file. En el RTL de ASIC el register file guarda 15 registros de 32 bits (\code{x1} a \code{x15}; \code{x0} no se almacena) y tiene lectura síncrona con dos puertos de salida registrados, por lo que se esperan $15\cdot 32 + 2\cdot 32 = 544$ flip-flops. Con 63,7 $\mu$m$^2$ por \code{dffq\_1}, área unitaria que entrega el reporte (55.400 $\mu$m$^2$ entre 870 celdas), eso da $\approx$34.650 $\mu$m$^2$. A esto se suman los multiplexores de escritura (un \code{mux2} de 32,9 $\mu$m$^2$ por cada uno de los 480 bits de almacenamiento, $\approx$15.800 $\mu$m$^2$) y los de lectura (dos puertos de 32 bits, cada bit un multiplexor de 15 a 1 de $\approx$5 \code{mux4} de 70,2 $\mu$m$^2$, $\approx$22.500 $\mu$m$^2$). La suma, $\approx$72.950 $\mu$m$^2$, coincide con los 73.656 $\mu$m$^2$ del reporte (diferencia de 1 \%), y el recuento de 544 flip-flops \code{dffq} es exacto.
 
 Lo que sí resultó distinto de lo intuitivo es el peso de la lógica de selección: el register file pesa más del doble de lo que ocuparían solo sus flip-flops, porque la lectura y la escritura con multiplexores agregan casi la misma área que el almacenamiento. Por el contrario, el contador de ciclos, que se esperaba pequeño por tener solo 32 flip-flops y un incrementador, ocupó 3.943 $\mu$m$^2$ (2,4~\%), de acuerdo con lo previsto.
 
@@ -755,13 +755,13 @@ TRACE cyc=27887 led=1111 seg1=0111111 seg2=1001111
   \item \textbf{Curso:} Arquitectura de Computadores
   \item \textbf{Código del curso:} 433
   \item \textbf{Nombre de la actividad:} Proyecto Nº3
-  \item \textbf{Fecha de entrega:} \completar{fecha}
+  \item \textbf{Fecha de entrega:} 4 de noviembre de 2026
   \item \textbf{Nombre(s) de(los) estudiante(s):} Josefa Alcaíno Lira, Felipe Izcúe Ferrer, Martín Norton Haigis
 \end{itemize}
 
 \subsection*{2. Declaración sobre uso de IA} \noindent $\square$ No se utilizaron herramientas de inteligencia artificial en ninguna etapa del desarrollo de esta actividad.
 
-\noindent $\boxtimes$ Sí se utilizaron herramientas de inteligencia artificial, según se detalla en la sección 3 de este documento. \completar{confirmar la opción}
+\noindent $\boxtimes$ Sí se utilizaron herramientas de inteligencia artificial, según se detalla en la sección 3 de este documento.
 
 \subsection*{3. Descripción de uso de IA}
 
@@ -769,15 +769,15 @@ TRACE cyc=27887 led=1111 seg1=0111111 seg2=1001111
 \centering
 \begin{tabularx}{\linewidth}{|l|X|}
 \hline
-\textbf{Herramienta empleada} & \completar{completar} \\
+\textbf{Herramienta empleada} & Claude (Anthropic): Sonnet 5.5 \\
 \hline
-\textbf{Fechas de uso} & \completar{completar}\\
+\textbf{Fechas de uso} & Entre el 20 de octubre y el 3 de noviembre de 2026 \\
 \hline
-\textbf{Estudiantes} & \completar{completar} \\
+\textbf{Estudiantes} & Josefa Alcaíno Lira, Felipe Izcúe Ferrer y Martín Norton Haigis \\
 \hline
-\textbf{Propósito del uso} & \completar{completar} \\
+\textbf{Propósito del uso} & Adaptación del RTL de FPGA a ASIC (Verilog), extensión del ensamblador en Python y generación de la ROM del juego, y creación de testbenches y de la simulación post-síntesis. Creación de las configuraciones y scripts de LibreLane para las corridas, los barridos de reloj y de utilización, y los experimentos de timing. Análisis de los reportes de síntesis, timing, DRC, LVS y antenas, y elaboración de las figuras (Python). Explicación de los resultados y del flujo para la defensa. Apoyo en la escritura del informe en LaTeX a partir del repositorio y de los resultados de las corridas, y en la redacción del README y la organización del repositorio. \\
 \hline
-\textbf{Descripción de integración} & \completar{completar}\\
+\textbf{Descripción de integración} & Claude se usó como apoyo en todas las etapas del proyecto, de forma iterativa: el grupo planteaba el problema o el resultado que necesitaba, Claude proponía y escribía el código, el script o el texto, y el grupo lo revisaba, lo ejecutaba y pedía correcciones. En la parte técnica, Claude escribió el RTL de ASIC (\code{asic\_top}, el register file con flip-flops, la ROM generada por el ensamblador y el comparador de saltos), la extensión del ensamblador y sus pruebas, los testbenches y la simulación post-síntesis, y los archivos de configuración y los scripts de LibreLane. Los integrantes del grupo ejecutaron todas las corridas del flujo en sus computadores (con Docker y WSL2), copiaron los resultados y los reportes al repositorio, y verificaron los números antes de incluirlos en el informe. Claude leyó esos reportes y métricas para obtener las cifras de síntesis, timing, área, DRC, LVS y antenas, y construyó las tablas y los gráficos del informe; cada dato proviene de una corrida del grupo y no se estimó sin respaldo, salvo las extrapolaciones indicadas expresamente. Claude también redactó el informe en LaTeX a partir del repositorio y de los resultados, escribió el README y la guía de comandos para la defensa, y apoyó la organización del repositorio y los mensajes de los commits, que realizó el grupo desde sus cuentas. Todo el contenido fue revisado por el grupo, que es responsable de entenderlo y de poder defenderlo. \completar{Josefa y Martín: completar su descripción de uso}\\
 \hline
 \end{tabularx}
 \end{table}
