@@ -95,7 +95,10 @@ cualquier corrida: `make report` (escribe `librelane/resumen_corridas.csv`).
 | 3.4 barrido de `CLOCK_PERIOD` | `scripts/sweep_clock.sh` (por defecto 80, 70, 60, 50 ns; el de 100 ns es la corrida final) |
 | 3.5 barrido de `FP_CORE_UTIL` | `scripts/sweep_util.sh` (por defecto 30, 50, 60 %; el de 40 % es la corrida final) |
 | 3.4 corrida con el cambio de RTL (comparador de saltos dedicado) | `RUN_TAG=final_opt scripts/run_final.sh` (no pisa `final`) |
+| 3.6 mitigación de violaciones de slew (informe, sección 8.1) | `VARIANT=librelane/variants/slew.json RUN_TAG=final_slew scripts/run_final.sh` (excluye celdas `dly*` y `buf_1` del resizer; no pisa las demás corridas) |
 | 3.7 simulación post-síntesis | ver abajo |
+
+**Corrida final del informe:** `final_opt` (RTL con el comparador de saltos dedicado, T = 100 ns, U = 40 %), con DRC de Magic, LVS y antenas en 0. La corrida `final_slew` es un experimento adicional: baja las violaciones de slew de 2426 a 443 y sube el slack de setup en `max_ss` de +37,22 a +56,56 ns, con el mismo signoff limpio (métricas en `resultados/final_slew/metrics.json`); no se usó para el resto del informe.
 
 ## Simulación
 
