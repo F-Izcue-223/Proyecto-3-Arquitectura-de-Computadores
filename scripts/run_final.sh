@@ -6,6 +6,7 @@ set -e
 . "$(dirname "$0")/env.sh"
 cd "$ROOT"
 if [ "$MEM" = "ff" ]; then TAG=final_mem_ff; EXTRA=librelane/variants/mem_ff.json; else TAG=final; EXTRA=; fi
+EXTRA=${VARIANT:-$EXTRA}   # VARIANT=librelane/variants/slew.json RUN_TAG=final_slew scripts/run_final.sh
 TAG=${RUN_TAG:-$TAG}   # RUN_TAG=final_opt scripts/run_final.sh  (no pisa la corrida anterior)
 $LIBRELANE --design-dir librelane --run-tag "$TAG" --overwrite \
   --save-views-to "$ROOT/librelane/views_$TAG" librelane/config.json $EXTRA

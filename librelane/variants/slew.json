@@ -1,0 +1,7 @@
+{
+  "EXTRA_EXCLUDED_CELLS": [
+    "gf180mcu_fd_sc_mcu7t5v0__dly*",
+    "gf180mcu_fd_sc_mcu7t5v0__buf_1"
+  ],
+  "PL_RESIZER_SETUP_SLACK_MARGIN": 10
+}
