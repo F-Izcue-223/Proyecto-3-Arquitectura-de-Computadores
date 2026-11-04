@@ -2,8 +2,8 @@
 
 Corridas: `librelane/run0_fpga` (RTL original, tag `run0`) y `librelane/run0b_modelo_bram`
 (igual + modelo de la BRAM, tag `run0b`). LibreLane 3.0.17, PDK gf180mcuD, celdas
-`gf180mcu_fd_sc_mcu7t5v0`. Los logs completos estan en `resultados_librelane/`.
-Rutas de log relativas a `resultados_librelane/<carpeta>/runs/<tag>/`.
+`gf180mcu_fd_sc_mcu7t5v0`. Los logs citados estan en `resultados/run0/logs/` y `resultados/run0b/logs/`.
+Los numeros de linea se refieren a los archivos copiados en esas carpetas.
 
 | # | Construccion de FPGA | Donde esta en el RTL | Que dijo LibreLane (archivo:linea) | Reemplazo |
 |---|---|---|---|---|

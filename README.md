@@ -72,7 +72,8 @@ Para T = 100 ns (10 MHz): `WAIT_CYCLES = 30 000 000`, `TENTH_CYCLES = 1 000 000`
 ## Corrida final
 
 ```
-make final          # = scripts/run_final.sh  (estrategia 1: ROM + RAM de 8 palabras)
+make final          # = scripts/run_final.sh  (estrategia 1: ROM + RAM de 8 palabras; crea la corrida `final`)
+RUN_TAG=final_opt scripts/run_final.sh   # la corrida entregada en el informe (`final_opt`)
 MEM=ff make final   # estrategia 2: memoria unificada de flip-flops
 ```
 
@@ -125,6 +126,9 @@ una décima = 1 000, antirrebote = 200, parpadeo = 2 000) y el botón incorrecto
 
 ## Estado
 
-Las secciones con datos de LibreLane (áreas, timing, DRC/LVS, costo) se completan con las
-corridas reales (ver `informe/evidencia_*.md`); el RTL, el assembler y las simulaciones ya están verificados.
-La estrategia 2 (memoria de flip-flops) quedó con la corrida parcial; su cierre de ruteo está pendiente.
+Entrega del Proyecto 3. La corrida final del informe es `final_opt` (T = 100 ns, U = 40 %, estrategia 1, RTL con comparador de saltos): DRC de Magic, LVS, DRC de ruteo y antenas en 0, setup y hold cumplidos en los nueve corners.
+
+- `final`, `clk_50ns` a `clk_80ns`, `util_30` a `util_60` y `final_mem_ff` se corrieron con el RTL anterior al comparador de saltos (el repositorio solo contiene la versión con comparador, commit `96d69c3`).
+- `final_mem_ff` (estrategia 2) no completó el flujo: se detuvo en el paso 43 y sus valores son intermedios.
+- `final_slew` es un experimento aparte sobre `final_opt` (excluye celdas `dly*` y `buf_1` del resizer).
+- Evidencia de 3.1: `resultados/run0/logs/` y `resultados/run0b/logs/`. Netlist simulada en 3.7: `resultados/sim_corto/sintesis/asic_top.nl.v`; los archivos `sim_asic/postsynth/asic_top_netlist.v`, `synth_generic.ys`, `stat_generic.txt` y `traza_rtl.txt`/`traza_netlist.txt` son un intento previo con celdas genéricas; los válidos son los `*_gf180.txt` y la netlist GF180.

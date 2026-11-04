@@ -17,7 +17,8 @@
 \usepackage[colorlinks=true,linkcolor=black,urlcolor=blue,citecolor=black]{hyperref}
 
 % --- Utilidades ---------------------------------------------------------------
-\newcommand{\SafeIncludeGraphics}[2][]{\IfFileExists{#2}{\includegraphics[#1]{#2}}{\mbox{}}}
+% Si falta una imagen se avisa en el log (no se omite en silencio).
+\newcommand{\SafeIncludeGraphics}[2][]{\IfFileExists{#2}{\includegraphics[#1]{#2}}{\PackageWarningNoLine{informe}{FALTA LA IMAGEN #2}\mbox{}}}
 \newcommand{\code}[1]{\texttt{#1}}
 \newcommand{\fuente}{\par\vspace{3pt}{\footnotesize\emph{Fuente: Elaboración propia.}}\par}
 \newcommand{\completar}[1]{\textcolor{red}{\textbf{[#1]}}}
@@ -73,7 +74,7 @@
 \SafeIncludeGraphics[width=1.2in]{Log.png}\\[0.8cm]
 \large UNIVERSIDAD DE LOS ANDES \\
 \large Facultad de Ingeniería y Ciencias Aplicadas \\
-Arquitectura de Computadores 2026-20\\
+Arquitectura de Computadores 2026-2\\
 \vspace{2cm}
 {\LARGE \textbf{Entrega Nº3}}\\
 \vspace{0.4cm}
@@ -91,7 +92,7 @@ Ayudantes: \\ Chen Shi Ye \\
 
 \vspace{0.5cm}
 
-\today
+4 de noviembre de 2026
 \end{center}
 \end{titlepage}
 \restoregeometry
@@ -100,7 +101,7 @@ Ayudantes: \\ Chen Shi Ye \\
 %% Resumen ------------------------------------------------------------------------
 \newpage
 \begin{center}\textbf{Resumen}\end{center}
-\noindent En este informe se documenta la implementación física del Pochoco SoC, con el procesador Espino RV32E y el juego de reflejos del Proyecto 2, desde el RTL hasta un GDSII, usando el flujo abierto LibreLane 3.0.17 y el PDK GF180MCU. Se adaptó el diseño de FPGA a ASIC mediante un módulo superior \code{asic\_top}, se reemplazaron las construcciones propias de la FPGA (BRAM, inicialización de registros, \code{\$readmemh}) y se comparó una ROM combinacional generada por el ensamblador frente a una memoria unificada de flip-flops. La corrida final, con $T=100$ ns y $U=40~\%$, cerró con DRC, LVS y antenas limpios, y con $\mathrm{WNS}_{setup}=+37{,}22$ ns y $\mathrm{WNS}_{hold}=+0{,}17$ ns en el peor de los nueve corners, con un área de die de 0,4416 mm$^2$ (costo estimado US\$10.156). Se barrió el período de reloj, se propuso un cambio al RTL que acortó la ruta crítica en 2,35 ns y se validó el netlist post-síntesis mediante simulación funcional, con trazas idénticas a las de la simulación RTL.
+\noindent En este informe se documenta la implementación física del Pochoco SoC, con el procesador Espino RV32E y el juego de reflejos del Proyecto 2, desde el RTL hasta un GDSII, usando el flujo abierto LibreLane 3.0.17 y el PDK GF180MCU. Se adaptó el diseño de FPGA a ASIC mediante un módulo superior \code{asic\_top}, se reemplazaron las construcciones propias de la FPGA (BRAM, inicialización de registros, \code{\$readmemh}) y se comparó una ROM combinacional generada por el ensamblador frente a una memoria unificada de flip-flops. La corrida final, con $T=100$ ns y $U=40~\%$, cerró con DRC, LVS y antenas limpios, y con $\mathrm{WNS}_{setup}=+37{,}22$ ns y $\mathrm{WNS}_{hold}=+0{,}17$ ns en el peor de los nueve corners, con un área de die de 0,4416 mm$^2$ (costo estimado US\$10.156). Se barrió el período de reloj (el menor período medido que cierra en todos los corners es 70 ns, 14,3 MHz), se exploró la utilización (el área mínima que cierra entre los puntos probados es la de $U=60~\%$, 0,295 mm$^2$), se propuso un cambio al RTL que acortó la ruta crítica en 2,35 ns y se validó el netlist post-síntesis mediante simulación funcional, con trazas idénticas a las de la simulación RTL.
 
 \newpage
 \setcounter{tocdepth}{1}
@@ -110,7 +111,7 @@ Ayudantes: \\ Chen Shi Ye \\
 %% 1. Introducción -------------------------------------------------------------------
 \section{Introducción}
 
-El objetivo del Proyecto 3 es llevar el Pochoco SoC, con el juego de reflejos desarrollado en el Proyecto 2, desde RTL hasta un GDSII, empleando el flujo abierto LibreLane y el PDK GF180MCU \cite{librelane,gf180}. El resultado es un macro digital implementado con celdas estándar, no un chip completo: sus puertos son terminales lógicos que, en un chip real, se conectarían a pads de entrada/salida con protección y manejo de carga.
+El objetivo del Proyecto 3 es llevar el Pochoco SoC \cite{pochoco}, que integra el procesador Espino con el conjunto de instrucciones RV32E de RISC-V \cite{riscv} y el juego de reflejos desarrollado en el Proyecto 2, desde RTL hasta un GDSII, empleando el flujo abierto LibreLane y el PDK GF180MCU \cite{librelane,gf180}. El resultado es un macro digital implementado con celdas estándar, no un chip completo: sus puertos son terminales lógicos que, en un chip real, se conectarían a pads de entrada/salida con protección y manejo de carga.
 
 El trabajo se organiza según las actividades del enunciado \cite{enunciado}:
 \begin{itemize}
@@ -160,7 +161,7 @@ Las corridas se ejecutaron en un notebook con Windows, WSL2 (Ubuntu) y Docker De
 LibreLane & 3.0.17 (imagen \code{ghcr.io/librelane/librelane:3.0.17})\\
 PDK & \code{gf180mcuD}, revisión ciel \code{54435919abffb937387ec956209f9cf5fd2dfbee}\\
 Biblioteca de celdas & \code{gf180mcu\_fd\_sc\_mcu7t5v0}\\
-OpenROAD & build 2026-02-17, commit \code{dcf36133a369abc8f3c5e5738cd4d82e4903c0e0}\\
+OpenROAD \cite{openroad} & build 2026-02-17, commit \code{dcf36133a369abc8f3c5e5738cd4d82e4903c0e0}\\
 OpenSTA & 2.7.0\\
 Yosys & 0.62 (git 7326bb7d)\\
 Magic & 8.3 rev 623\\
@@ -171,9 +172,11 @@ Verilator & 5.044 (imagen); 5.032 en el host (apt)\\
 \fuente
 \end{table}
 
-\paragraph{Estructura del repositorio.} \code{rtl/} conserva sin cambios el RTL de FPGA del Proyecto 2; \code{rtl\_asic/} contiene el RTL adaptado; \code{asm/} el ensamblador \code{pochoasm.py}; \code{sw/game.s} el juego; \code{sim/} y \code{sim\_asic/} los testbenches; \code{librelane/} las configuraciones; \code{scripts/} los scripts de corrida; y \code{resultados/} las métricas, reportes y el GDS de cada corrida.
+\paragraph{Estructura del repositorio.} \code{rtl/} conserva sin cambios el RTL de FPGA del Proyecto 2; \code{rtl\_asic/} contiene el RTL adaptado; \code{asm/} el ensamblador \code{pochoasm.py}; \code{sw/game.s} el juego; \code{sim/} y \code{sim\_asic/} los testbenches; \code{librelane/} las configuraciones; \code{scripts/} los scripts de corrida; y \code{resultados/} las métricas y reportes de cada corrida; el GDS, el LEF y la netlist se conservan solo para la corrida final (\code{final\_opt}).
 
-\paragraph{Corrida final.} Se ejecuta con \code{scripts/run\_final.sh}, que invoca LibreLane con la configuración de \code{librelane/}. El programa se regenera desde \code{game.s} con el ensamblador (Sección~\ref{sec:mem}). Cada corrida completa del flujo con la estrategia 1 tomó entre 5,3 y 7,0 minutos; el ruteo detallado tomó entre 1,3 y 1,8 minutos y fue la etapa con mayor uso de CPU (pico de 945 MiB de RAM y 24 hilos).
+\paragraph{Corrida final.} La corrida entregada (\code{final\_opt}) se ejecuta con \code{RUN\_TAG=final\_opt scripts/run\_final.sh}; sin \code{RUN\_TAG} el script crea la corrida \code{final}, que es la base con el RTL anterior. El script invoca LibreLane con la configuración de \code{librelane/}. El programa se regenera desde \code{game.s} con el ensamblador (Sección~\ref{sec:mem}). Cada corrida completa del flujo con la estrategia 1 tomó entre 5,3 y 7,0 minutos; el ruteo detallado tomó entre 1,3 y 1,8 minutos y fue la etapa con mayor uso de CPU (pico de 945 MiB de RAM y 24 hilos).
+
+\paragraph{Versión del RTL de cada corrida.} Las corridas \code{final}, \code{clk\_50ns} a \code{clk\_80ns}, \code{util\_30} a \code{util\_60} y \code{final\_mem\_ff} se ejecutaron con el RTL \textbf{anterior} al comparador de saltos de la Sección~\ref{sec:timing}, en el que la condición del salto se calculaba con la ALU. Esa versión no tiene un commit propio: el primer commit del RTL de ASIC en el repositorio (\code{96d69c3}, 28 de octubre de 2026) ya incluye el comparador, y la versión anterior solo difiere de ella en el bloque de \code{espino\_id\_stage.v} citado en el Código~\ref{lst:cmp}. Las corridas \code{final\_opt}, \code{final\_slew} y \code{sim\_corto} usan el RTL del commit \code{96d69c3}, que es el que está en \code{rtl\_asic/}.
 
 %% 3. RTL FPGA -> ASIC ---------------------------------------------------------------
 \section{Del RTL de FPGA al RTL de ASIC}
@@ -181,7 +184,7 @@ Verilator & 5.044 (imagen); 5.032 en el host (apt)\\
 
 \subsection{Módulo superior \texorpdfstring{\code{asic\_top}}{asic\_top}}
 
-Se creó \code{rtl\_asic/asic\_top.v}, que instancia \code{pochoco\_soc} (con \code{DataWords = 8}) sin elementos de FPGA. Sus puertos corresponden a las funciones lógicas del juego (Cuadro~\ref{tab:puertos}). Incluye un sincronizador de reset de dos flip-flops, con asserción asíncrona y liberación síncrona, y sincronizadores de dos flip-flops para los cuatro botones.
+Se creó \code{rtl\_asic/asic\_top.v}, que instancia \code{pochoco\_soc} (con \code{DataWords = 8}) sin elementos de FPGA. Sus puertos corresponden a las funciones lógicas del juego (Cuadro~\ref{tab:puertos}). Incluye un sincronizador de reset de dos flip-flops, con aserción asíncrona y liberación síncrona, y sincronizadores de dos flip-flops para los cuatro botones.
 
 \begin{table}[H]
 \centering
@@ -216,7 +219,7 @@ wire rst_n = rst_sync[1];
 
 \subsection{Construcciones dependientes de la FPGA}
 
-Se revisó el RTL del Proyecto 2 y se ejecutaron dos corridas de diagnóstico sobre el código sin modificar: \code{run0} (RTL de FPGA tal cual) y \code{run0b} (RTL de FPGA con un modelo de BRAM para que el flujo avance). El Cuadro~\ref{tab:fpga} resume cada construcción, la evidencia de LibreLane y el reemplazo.
+Se revisó el RTL del Proyecto 2 y se ejecutaron dos corridas de diagnóstico sobre el código sin modificar: \code{run0} (RTL de FPGA tal cual) y \code{run0b} (RTL de FPGA con un modelo de BRAM para que el flujo avance). El Cuadro~\ref{tab:fpga} resume cada construcción, la evidencia de LibreLane y el reemplazo. Los logs citados están en el repositorio: \code{resultados/}\allowbreak\code{run0/}\allowbreak\code{logs/} (\code{verilator-}\allowbreak\code{lint.log} y \code{yosys-}\allowbreak\code{jsonheader.log}) y \code{resultados/}\allowbreak\code{run0b/}\allowbreak\code{logs/} (\code{verilator-}\allowbreak\code{lint.log} y \code{yosys-}\allowbreak\code{synthesis.log}); los números de línea del cuadro se refieren a esos archivos.
 
 \begin{table}[H]
 \centering
@@ -268,16 +271,23 @@ Recalculadas para 10 MHz (Sección~\ref{sec:timing}).\\
 
 Se extendió \code{pochoasm.py} con las opciones siguientes:
 \begin{itemize}
-  \item \code{--rom-v}: genera la ROM combinacional en Verilog (un \code{case} sobre la dirección con registro de salida).
-  \item \code{--init-vh}: genera la inicialización de la memoria unificada con flip-flops (estrategia 2).
-  \item \code{--report}: informa las palabras de instrucciones y de datos usadas.
+  \item \code{-{}-rom-v}: genera la ROM combinacional en Verilog (un \code{case} sobre la dirección con registro de salida).
+  \item \code{-{}-init-vh}: genera la inicialización de la memoria unificada con flip-flops (estrategia 2).
+  \item \code{-{}-report}: informa las palabras de instrucciones y de datos usadas.
   \item \code{-D}: define constantes en tiempo de ensamblado, para cambiar las esperas sin editar \code{game.s}.
 \end{itemize}
 Las pruebas del ensamblador (25 en total, incluidas las de las salidas para ASIC) pasan todas.
 
 \subsection{Uso real de memoria}
 
-El número de palabras se obtuvo con \code{pochoasm.py --report} sobre \code{game.s}: el juego ocupa \textbf{114 palabras de instrucciones} y \textbf{0 palabras de datos}. Las 12 cargas y 6 escrituras del programa se hacen todas mediante el registro \code{s0}, que contiene la base de los periféricos (MMIO en \code{0x80000000}); ninguna accede a la RAM de datos. Ambos valores están por debajo del máximo recomendado (256 y 64 palabras). Se conservaron 8 palabras de datos para mantener una RAM funcional.
+El número de palabras se obtuvo con \code{pochoasm.py -{}-report} sobre \code{game.s}, cuya salida es:
+\begin{lstlisting}
+sw/game.s -> game.hex: 114 palabras (456 de 1024 bytes)
+palabras de instrucciones: 114
+loads  por registro base: s0=12
+stores por registro base: s0=6
+\end{lstlisting}
+El juego ocupa \textbf{114 palabras de instrucciones} y \textbf{0 palabras de datos}. Las 12 cargas y 6 escrituras del programa se hacen todas mediante el registro \code{s0}, que contiene la base de los periféricos (MMIO en \code{0x80000000}); ninguna accede a la RAM de datos. Ambos valores están por debajo del máximo recomendado (256 y 64 palabras). Se conservaron 8 palabras de datos para mantener una RAM funcional.
 
 \subsection{Comparación de estrategias}
 
@@ -302,50 +312,53 @@ Flip-flops & 1.069 & 4.719\\
 Área de flip-flops ($\mu$m$^2$) & 70.251 (43,2 \%) & 350.780 (53,6 \%)\\
 Área de die (mm$^2$) & 0,436 & 1,695\\
 Costo estimado (US\$) & 10.024 & 38.985\\
-Utilización tras PnR & 51,4 \% & 54,6 \%\\
-WNS setup, corner lento (ns) & $+34{,}87$ & $-740{,}81$\\
-Frecuencia máxima (MHz) & 15,4 & 1,19\\
-Longitud de cable & 0,40 m & 3,85 m\\
-Vías & 47.733 & 287.608\\
+Utilización tras PnR & 51,4 \% & 54,6 \%$^{*}$\\
+WNS setup, corner lento (ns) & $+34{,}87$ & $-740{,}81^{*}$\\
+Frecuencia máxima (MHz) & 15,4 & 1,19$^{*}$\\
+Longitud de cable & 0,40 m & 3,85 m$^{*}$\\
+Vías & 47.733 & 287.608$^{*}$\\
 \bottomrule
 \end{tabular}
+
+\vspace{2pt}
+{\footnotesize $^{*}$ Valor tomado del paso 43 (\code{stamidpnr}) de la estrategia 2, que \textbf{no completó} el flujo; es un valor intermedio, no un resultado de cierre.}
 \fuente
 \end{table}
 
-\paragraph{Limitación de la estrategia 2.} La corrida de la estrategia 2 \textbf{no se completó}: se detuvo en el paso 43 (\code{stamidpnr}) con una red con violación de antena, y el ruteo detallado quedó estancado en una violación de DRC entre las iteraciones 44 y 60. Los valores de timing del Cuadro~\ref{tab:estrategias} corresponden a ese paso intermedio, por lo que son indicativos y no son un cierre de timing. Por falta de tiempo, esta corrida no se repitió con otra utilización, de modo que la comparación se basa en estos valores parciales y la conclusión (la ROM combinacional es la opción viable) no depende de un cierre de la estrategia 2.
+\paragraph{Limitación de la estrategia 2.} La corrida de la estrategia 2 \textbf{no se completó}: se detuvo en el paso 43 (\code{stamidpnr}) con una red con violación de antena, y el ruteo detallado quedó estancado en una violación de DRC entre las iteraciones 44 y 60. Los valores marcados con asterisco en el Cuadro~\ref{tab:estrategias} (utilización, WNS, frecuencia máxima, longitud de cable y vías) corresponden a ese paso intermedio, por lo que son indicativos y no son un cierre de timing. Esta corrida no se repitió con otra utilización, de modo que la comparación se basa en estos valores parciales y la conclusión (la ROM combinacional es la opción viable) no depende de un cierre de la estrategia 2.
 
-\paragraph{Análisis.} La ROM combinacional ocupa 114 palabras de lógica, que Yosys optimiza como funciones booleanas compartidas, mientras que la memoria unificada necesita 32 flip-flops por cada una de las 122 palabras más sus multiplexores de lectura y escritura. La diferencia de $\sim$3.650 flip-flops explica la mayor parte de la diferencia de área (4,0$\times$ en celdas y 3,9$\times$ en costo) y, a través de los cables más largos (casi diez veces la longitud de ruta), la caída de la frecuencia máxima. Por esta razón se eligió la estrategia 1 para la corrida final.
+\paragraph{Análisis.} La ROM combinacional ocupa 114 palabras de lógica, que Yosys optimiza como funciones booleanas compartidas, mientras que la memoria unificada necesita 32 flip-flops por cada una de las 122 palabras más sus multiplexores de lectura y escritura. La diferencia de $\sim$3.650 flip-flops explica la mayor parte de la diferencia de área (3,9$\times$ en celdas, 4,0$\times$ en área de celdas y 3,9$\times$ en costo) y, a través de los cables más largos (casi diez veces la longitud de ruta, valor del paso 43), la caída de la frecuencia máxima. Por esta razón se eligió la estrategia 1 para la corrida final.
 
 %% 5. Síntesis -----------------------------------------------------------------------
 \section{Síntesis}
 \label{sec:sint}
 
-Los valores de esta sección provienen del reporte de estadísticas jerárquicas de Yosys (\code{resultados/final/}\allowbreak\code{sintesis/stat.rpt}), con el RTL base.
+Los valores de esta sección provienen del reporte de estadísticas jerárquicas de Yosys de la corrida final (\code{resultados/final\_opt/}\allowbreak\code{sintesis/stat.rpt}).
 
 \subsection{Celdas más usadas}
 
-El diseño sintetizado tiene 5.567 celdas con un área total de 162.735 $\mu$m$^2$. El Cuadro~\ref{tab:top5} lista las cinco celdas que más área ocupan y el origen de cada una.
+El diseño sintetizado de la corrida final tiene 5.638 celdas con un área total de 164.956 $\mu$m$^2$. El Cuadro~\ref{tab:top5} lista las cinco celdas más usadas, ordenadas por cantidad como pide el enunciado, con su área y el módulo donde están.
 
 \begin{table}[H]
 \centering
-\caption{Cinco celdas con mayor área tras la síntesis (corrida \code{final}).}
+\caption{Cinco celdas más usadas (por cantidad) tras la síntesis de la corrida final (\code{final\_opt}).}
 \label{tab:top5}
 \small
 \begin{tabularx}{\linewidth}{>{\ttfamily}lrrrX}
 \toprule
-\textbf{Celda} & \textbf{Cant.} & \textbf{Área ($\mu$m$^2$)} & \textbf{\%} & \textbf{Origen}\\
+\textbf{Celda} & \textbf{Cant.} & \textbf{Área ($\mu$m$^2$)} & \textbf{\% del área} & \textbf{Dónde están (cantidad por módulo)}\\
 \midrule
-dffq\_1 & 870 & 55.400 & 34,0 & Register file (544) y registros del núcleo y periféricos sin reset\\
-mux2\_2 & 693 & 22.800 & 14,0 & Puertos de lectura del register file, habilitación de escritura y selección de operandos\\
-dffrnq\_1 & 196 & 14.600 & 9,0 & Registros con reset: PC, contador de ciclos (32), estado de periféricos\\
-nand2\_1 & 857 & 9.410 & 5,8 & Lógica de la ALU, decodificación y la ROM\\
-mux4\_1 & 128 & 8.990 & 5,5 & Árbol de lectura del register file (lectura de 16 registros)\\
+dffq\_1 & 870 & 55.400 & 33,6 & Register file 544; resto del diseño 326\\
+nand2\_1 & 825 & 9.055 & 5,5 & Resto 649; register file 88; ALU 82; contador 6\\
+mux2\_2 & 751 & 24.700 & 15,0 & Register file 622; resto 129\\
+oai21\_1 & 442 & 7.760 & 4,7 & Resto 359; ALU 51; register file 32\\
+nor2\_1 & 353 & 4.650 & 2,8 & Resto 219; ALU 80; register file 46; contador 8\\
 \bottomrule
 \end{tabularx}
 \fuente
 \end{table}
 
-Por cantidad, las cinco celdas más frecuentes son \code{dffq\_1}, \code{nand2\_1}, \code{mux2\_2}, \code{oai21\_1} y \code{nor2\_1}. Los flip-flops (1.069 en total) ocupan 70.251 $\mu$m$^2$, un 43,2 \% del área sintetizada.
+``Resto'' es la lógica del módulo superior fuera de los tres bloques que Yosys mantiene separados (control, decodificación, ROM, RAM y periféricos). La lista completa de celdas está en el \code{stat.rpt}. Por área, la celda más grande es \code{dffq\_1} (33,6 \%) y le siguen \code{mux2\_2} (15,0 \%) y \code{dffrnq\_1} (14.600 $\mu$m$^2$, 196 celdas); los flip-flops en total (1.069) ocupan 70.251 $\mu$m$^2$, un 42,6 \% del área sintetizada.
 
 \subsection{Módulo con mayor área y contador de ciclos}
 
@@ -353,32 +366,32 @@ Se mantuvo la jerarquía con \code{SYNTH\_KEEP\_HIERARCHY\_MODULES}, de modo que
 
 \begin{table}[H]
 \centering
-\caption{Área por módulo tras la síntesis.}
+\caption{Área por módulo tras la síntesis de la corrida final (\code{final\_opt}).}
 \label{tab:modulos}
 \begin{tabular}{lrr}
 \toprule
 \textbf{Módulo} & \textbf{Área ($\mu$m$^2$)} & \textbf{\% del total}\\
 \midrule
-\code{espino\_register\_file} & 73.656 & 45,3\\
+\code{espino\_register\_file} & 73.656 & 44,7\\
 \code{espino\_alu} & 10.006 & 6,1\\
 \code{pochoco\_cycle\_counter} & 3.943 & 2,4\\
-Resto (control, decodificación, ROM, RAM, periféricos) & 75.131 & 46,2\\
+Resto (control, decodificación, ROM, RAM, periféricos) & 77.352 & 46,9\\
 \midrule
-\textbf{Total} & \textbf{162.735} & \textbf{100}\\
+\textbf{Total} & \textbf{164.956} & \textbf{100}\\
 \bottomrule
 \end{tabular}
 \fuente
 \end{table}
 
-El módulo con mayor área es el \textbf{register file} (45,3 \%), con 544 flip-flops \code{dffq}. El \textbf{contador de ciclos} agregado en el Proyecto 2 aporta 3.943 $\mu$m$^2$, que corresponde al \textbf{2,4 \%} del área sintetizada y usa 32 flip-flops \code{dffrnq}.
+El módulo con mayor área es el \textbf{register file} (44,7 \%), con 544 flip-flops \code{dffq}. El \textbf{contador de ciclos} agregado en el Proyecto 2 aporta 3.943 $\mu$m$^2$, que corresponde al \textbf{2,4 \%} del área sintetizada y usa 32 flip-flops \code{dffrnq}.
 
 \paragraph{Trazabilidad jerárquica.} Los nombres de instancia se conservan hasta el layout, por lo que las celdas de cada bloque se identifican por prefijo: \code{u\_soc.u\_core.u\_rf/} (register file), \allowbreak\code{u\_soc.u\_core.u\_id.u\_alu/} (ALU) y \allowbreak\code{u\_soc.u\_periph.u\_cycle\_counter} (contador de ciclos). Estos prefijos se usan en la Sección~\ref{sec:signoff} para anotar el layout.
 
 \subsection{Comparación con lo esperado}
 
-A partir del RTL se podía anticipar que el área estaría dominada por el almacenamiento y que el módulo más grande sería el register file. En el RTL de ASIC el register file guarda 15 registros de 32 bits (\code{x1} a \code{x15}; \code{x0} no se almacena) y tiene lectura síncrona con dos puertos de salida registrados, por lo que se esperan $15\cdot 32 + 2\cdot 32 = 544$ flip-flops. Con 63,7 $\mu$m$^2$ por \code{dffq\_1}, área unitaria que entrega el reporte (55.400 $\mu$m$^2$ entre 870 celdas), eso da $\approx$34.650 $\mu$m$^2$. A esto se suman los multiplexores de escritura (un \code{mux2} de 32,9 $\mu$m$^2$ por cada uno de los 480 bits de almacenamiento, $\approx$15.800 $\mu$m$^2$) y los de lectura (dos puertos de 32 bits, cada bit un multiplexor de 15 a 1 de $\approx$5 \code{mux4} de 70,2 $\mu$m$^2$, $\approx$22.500 $\mu$m$^2$). La suma, $\approx$72.950 $\mu$m$^2$, coincide con los 73.656 $\mu$m$^2$ del reporte (diferencia de 1 \%), y el recuento de 544 flip-flops \code{dffq} es exacto.
+Solo se compara el register file, porque es el único bloque para el que se puede calcular el área esperada directamente desde el RTL; no se hizo una estimación previa para la ROM ni para el total, por lo que no se comparan. En el RTL de ASIC el register file guarda 15 registros de 32 bits (\code{x1} a \code{x15}; \code{x0} no se almacena) y tiene lectura síncrona con dos puertos de salida registrados, por lo que se esperan $15\cdot 32 + 2\cdot 32 = 544$ flip-flops. Con 63,7 $\mu$m$^2$ por \code{dffq\_1}, área unitaria que entrega el reporte (55.400 $\mu$m$^2$ entre 870 celdas), eso da $\approx$34.650 $\mu$m$^2$. A esto se suman los multiplexores de escritura (un \code{mux2} de 32,9 $\mu$m$^2$ por cada uno de los 480 bits de almacenamiento, $\approx$15.800 $\mu$m$^2$) y los de lectura (dos puertos de 32 bits, cada bit un multiplexor de 15 a 1 de $\approx$5 \code{mux4} de 70,2 $\mu$m$^2$, $\approx$22.500 $\mu$m$^2$). La suma, $\approx$72.950 $\mu$m$^2$, coincide con los 73.656 $\mu$m$^2$ del reporte (diferencia de 1 \%), y el recuento de 544 flip-flops \code{dffq} es exacto.
 
-Lo que sí resultó distinto de lo intuitivo es el peso de la lógica de selección: el register file pesa más del doble de lo que ocuparían solo sus flip-flops, porque la lectura y la escritura con multiplexores agregan casi la misma área que el almacenamiento. Por el contrario, el contador de ciclos, que se esperaba pequeño por tener solo 32 flip-flops y un incrementador, ocupó 3.943 $\mu$m$^2$ (2,4~\%), de acuerdo con lo previsto.
+El resultado muestra el peso de la lógica de selección: el register file ocupa más del doble de lo que ocuparían solo sus flip-flops, porque la lectura y la escritura con multiplexores agregan casi la misma área que el almacenamiento.
 
 %% 6. Timing -------------------------------------------------------------------------
 \section{Timing}
@@ -392,24 +405,27 @@ Se barrió \code{CLOCK\_PERIOD} en cinco puntos (50, 60, 70, 80 y 100 ns), todos
 \centering
 \caption{Barrido de \code{CLOCK\_PERIOD}: WNS y TNS de setup y hold (ns), corner típico y lento.}
 \label{tab:barrido}
-\small
-\begin{tabular}{rrrrrrrr}
+\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{rrrrrrrrr}
 \toprule
-& \multicolumn{3}{c}{\textbf{Setup}} & & \multicolumn{3}{c}{\textbf{Hold}}\\
-\cmidrule(lr){2-4}\cmidrule(lr){6-8}
-\textbf{$T$ (ns)} & WNS típ. & WNS lento & TNS lento & & WNS típ. & WNS lento & TNS\\
+& \multicolumn{4}{c}{\textbf{Setup}} & \multicolumn{4}{c}{\textbf{Hold}}\\
+\cmidrule(lr){2-5}\cmidrule(lr){6-9}
+& \multicolumn{2}{c}{WNS} & \multicolumn{2}{c}{TNS} & \multicolumn{2}{c}{WNS} & \multicolumn{2}{c}{TNS}\\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}
+\textbf{$T$ (ns)} & típ. & lento & típ. & lento & típ. & lento & típ. & lento\\
 \midrule
-100 & $+65{,}76$ & $+34{,}87$ & 0 & & 0,37 & 0,94 & 0\\
-80  & $+45{,}76$ & $+14{,}87$ & 0 & & 0,37 & 0,94 & 0\\
-70  & $+35{,}76$ & $+4{,}87$  & 0 & & 0,37 & 0,94 & 0\\
-60  & $+25{,}76$ & $-5{,}13$  & $-444{,}56$ & & 0,37 & 0,94 & 0\\
-50  & $+16{,}09$ & $-14{,}46$ & $-6.568{,}72$ & & 0,37 & 0,94 & 0\\
+100 & $+65{,}76$ & $+34{,}87$ & 0 & 0 & 0,37 & 0,94 & 0 & 0\\
+80  & $+45{,}76$ & $+14{,}87$ & 0 & 0 & 0,37 & 0,94 & 0 & 0\\
+70  & $+35{,}76$ & $+4{,}87$  & 0 & 0 & 0,37 & 0,94 & 0 & 0\\
+60  & $+25{,}76$ & $-5{,}13$  & 0 & $-444{,}56$ & 0,37 & 0,94 & 0 & 0\\
+50  & $+16{,}09$ & $-14{,}46$ & 0 & $-6.568{,}72$ & 0,37 & 0,94 & 0 & 0\\
 \bottomrule
 \end{tabular}
 \fuente
 \end{table}
 
-El TNS del corner típico es 0 en todos los puntos. El menor período medido que cierra timing en los corners exigidos es \textbf{70 ns} (14,3 MHz). Extrapolando linealmente el slack del punto de 100 ns, el período mínimo estimado es 65,1 ns (15,4 MHz); esta cifra es una estimación, porque no se corrió el flujo en ese punto.
+El TNS del corner típico es 0 en todos los puntos, y el de hold es 0 en ambos corners (valores tomados de \code{metrics.json} de cada corrida). El menor período medido que cierra timing en los corners exigidos es \textbf{70 ns} (14,3 MHz). Extrapolando linealmente el slack del punto de 100 ns, el período mínimo estimado es 65,1 ns (15,4 MHz); esta cifra es una estimación, porque no se corrió el flujo en ese punto.
 
 \begin{figure}[H]
 \centering
@@ -419,7 +435,7 @@ El TNS del corner típico es 0 en todos los puntos. El menor período medido que
 \fuente
 \end{figure}
 
-\paragraph{Advertencia sobre la optimización.} Cada valor de \code{CLOCK\_PERIOD} puede producir una nueva optimización del circuito (buffering, dimensionamiento, placement), con cambios en área y ruteo. En este barrido el número de celdas y el área fueron idénticos entre 100 y 60 ns, y solo cambiaron en 50 ns. Una explicación probable, no verificada con una corrida adicional, es que el \textit{resizer} repara únicamente en el corner \code{nom\_tt}, donde el slack se mantiene positivo, y por eso no reacciona al período; los incumplimientos en \code{max\_ss} quedan sin reparar.
+\paragraph{Advertencia sobre la optimización.} Cada valor de \code{CLOCK\_PERIOD} puede producir una nueva optimización del circuito (buffering, dimensionamiento, placement), con cambios en área y ruteo. En este barrido el número de celdas y el área fueron idénticos entre 100 y 60 ns, y solo cambiaron en 50 ns. Una explicación probable, no verificada con una corrida adicional, es que el \textit{resizer} repara únicamente en el corner \code{nom\_tt}, donde el slack se mantiene positivo, y por eso no reacciona al período; esto es coherente con que el corner por defecto del flujo sea \code{DEFAULT\_CORNER = nom\_tt\_025C\_5v00} (README); los incumplimientos en \code{max\_ss} quedan sin reparar.
 
 El hold no depende del período, ya que depende de los retardos entre flip-flops del mismo flanco, y por eso es constante en la tabla. El peor hold sobre los nueve corners es $+0{,}13$ ns (corrida \code{final}) y $+0{,}17$ ns (corrida \code{final\_opt}).
 
@@ -427,8 +443,8 @@ El hold no depende del período, ya que depende de los retardos entre flip-flops
 
 En la corrida \code{final} (RTL base, $T=100$ ns, corner \code{max\_ss}) la ruta crítica tiene 40 celdas y un tiempo de llegada de 67,19 ns (35,26 ns en \code{nom\_tt}):
 \begin{itemize}
-  \item \textbf{Celda de inicio:} \code{\_5373\_} (\code{dffq\_1}), que guarda \code{u\_soc.instr\_rdata[3]}.
-  \item \textbf{Celda de fin:} \code{\_5228\_} (\code{dffrnq\_1}), que guarda \code{u\_soc.}\allowbreak\code{instr\_addr[23]} (el contador de programa).
+  \item \textbf{Celda de inicio:} \code{\_5373\_} (\code{dffq\_1}), que guarda \code{u\_soc.instr\_rdata[3]}. \textbf{Módulo RTL de inicio:} \code{pochoco\_imem} (instancia \code{u\_mem.u\_imem}, en \code{rtl\_asic/gen/game\_rom.v}): es el registro de salida \code{rdata\_o} de la ROM de instrucciones.
+  \item \textbf{Celda de fin:} \code{\_5228\_} (\code{dffrnq\_1}), que guarda \code{u\_soc.}\allowbreak\code{instr\_addr[23]} (el contador de programa). \textbf{Módulo RTL de fin:} \code{espino\_if\_stage}, registro \code{pc\_q} (\code{instr\_addr\_o = pc\_q}).
   \item \textbf{Función microarquitectónica:} decodificación $\rightarrow$ ejecución (comparación en la ALU) $\rightarrow$ resolución del salto $\rightarrow$ cálculo del próximo PC (\textit{fetch}).
   \item \textbf{Composición:} 36,6 ns corresponden a celdas \code{dlyb\_1} (retardo insertado como buffer) y cerca de 14 ns a la ALU.
 \end{itemize}
@@ -443,8 +459,18 @@ wire [2:0] br_f3  = instr_rdata_i[14:12];
 wire br_eq  = (rf_rdata_a_i == rf_rdata_b_i);
 wire br_lt  = ($signed(rf_rdata_a_i) < $signed(rf_rdata_b_i));
 wire br_ltu = (rf_rdata_a_i < rf_rdata_b_i);
-// case (br_f3): 000 BEQ, 001 BNE, 100 BLT, 101 BGE,
-//               110 BLTU, 111 BGEU; default 0
+reg  br_cond;
+always @* begin
+  case (br_f3)
+    3'b000:  br_cond =  br_eq;   // BEQ
+    3'b001:  br_cond = ~br_eq;   // BNE
+    3'b100:  br_cond =  br_lt;   // BLT
+    3'b101:  br_cond = ~br_lt;   // BGE
+    3'b110:  br_cond =  br_ltu;  // BLTU
+    3'b111:  br_cond = ~br_ltu;  // BGEU
+    default: br_cond =  1'b0;
+  endcase
+end
 assign branch_taken_o = is_branch & br_cond;
 \end{lstlisting}
 \end{samepage}
@@ -472,7 +498,7 @@ Costo estimado (US\$) & 10.024 & 10.156\\
 \fuente
 \end{table}
 
-El slack mejoró en \textbf{2,35 ns} (6,7 \%) a costa de un \textbf{+1,0 \%} en el área de celdas (71 celdas adicionales) y +1,3 \% en el área del die. En la nueva corrida la ruta crítica pasa a ser decodificación $\rightarrow$ ALU $\rightarrow$ \textit{write-back} (inicio en \code{\_5516\_}, \code{instr\_rdata[4]}; fin en una celda del register file, \code{u\_soc.u\_core.u\_rf/\_2755\_}, con 64,75 ns de llegada), es decir, la ruta del PC dejó de ser la peor. La mejora es modesta porque la ruta crítica sigue dominada por las celdas de retardo \code{dlyb\_1} (622 en el netlist final), que el \textit{resizer} usa como buffers. Solo el punto de 100 ns se ejecutó con el RTL modificado; el barrido de la tabla anterior se hizo con el RTL base.
+El slack mejoró en \textbf{2,35 ns} (6,7 \%) a costa de un \textbf{+1,0 \%} en el área de celdas (71 celdas adicionales) y +1,3 \% en el área del die. En la nueva corrida la ruta crítica pasa a ser decodificación $\rightarrow$ ALU $\rightarrow$ \textit{write-back} (inicio en \code{\_5516\_}, \code{instr\_rdata[4]}, el registro de salida de la ROM en \code{pochoco\_imem}; fin en un flip-flop del módulo \code{espino\_register\_file}, \code{u\_soc.u\_core.u\_rf/\_2755\_}, con 64,75 ns de llegada), es decir, la ruta del PC dejó de ser la peor. La mejora es modesta porque la ruta crítica sigue dominada por las celdas de retardo \code{dlyb\_1} (622 en el netlist final), que el \textit{resizer} usa como buffers. Solo el punto de 100 ns se ejecutó con el RTL modificado; el barrido de la tabla anterior se hizo con el RTL base.
 
 \subsection{Constantes de \texttt{game.s} para $T=100$ ns}
 
@@ -499,7 +525,7 @@ N = \frac{t}{T} = t\cdot f, \qquad f=10\ \text{MHz}.
 \fuente
 \end{table}
 
-Por ejemplo, $\mathrm{WAIT\_CYCLES} = 3\ \mathrm{s} / 100\ \mathrm{ns} = 3\cdot 10^{7}$ y $\mathrm{TENTH\_CYCLES} = 0{,}1\ \mathrm{s}/100\ \mathrm{ns} = 10^{6}$. El programa se regeneró con el ensamblador pasando estas constantes mediante \code{-D}. Los valores de la columna de 25 MHz son los equivalentes para el reloj de la Go Board ($N=t\cdot 25\ \text{MHz}$), calculados con los mismos tiempos.
+Al pasar de 25 a 10 MHz cambian las cuatro constantes de espera del cuadro; \code{ROUNDS} (10 rondas) y \code{ERROR\_CODE} (\code{0xEE}) no cambian, porque no dependen de la frecuencia del reloj. Por ejemplo, $\mathrm{WAIT\_CYCLES} = 3\ \mathrm{s} / 100\ \mathrm{ns} = 3\cdot 10^{7}$ y $\mathrm{TENTH\_CYCLES} = 0{,}1\ \mathrm{s}/100\ \mathrm{ns} = 10^{6}$. El programa se regeneró con el ensamblador pasando estas constantes mediante \code{-D}. Los valores de la columna de 25 MHz son los equivalentes para el reloj de la Go Board ($N=t\cdot 25\ \text{MHz}$), calculados con los mismos tiempos.
 
 %% 7. Floorplan ----------------------------------------------------------------------
 \section{Floorplan, red de alimentación y placement}
@@ -546,7 +572,7 @@ Los terminales se agruparon por función y por borde del die (\code{informe/pine
   \item \textbf{Oeste:} \code{i\_Clk} e \code{i\_Rst\_n}, las señales globales de reloj y reset.
   \item \textbf{Sur:} botones (\code{i\_Btn}) y LEDs (\code{o\_LED}), la interacción directa con el jugador.
   \item \textbf{Norte:} \code{o\_Seg1} y \code{o\_Seg2}, los dos displays de 7 segmentos.
-  \item \textbf{Este:} la interfaz SPI.
+  \item \textbf{Este:} la interfaz SPI (esclavo SPI), alejada del reloj.
 \end{itemize}
 Agrupar los pines de cada función acorta los cables entre el macro y sus periféricos y reduce el cruce de rutas. Estos terminales son puntos de conexión lógicos del macro; un chip completo necesitaría además pads de I/O con protección ESD, buffers de potencia para manejar los LEDs y los displays, y niveles de voltaje adecuados.
 
@@ -559,7 +585,7 @@ Con el dato visto en clases (US\$23.000 por 1 mm$^2$) y suponiendo que el costo 
 
 \paragraph{Limitaciones.} El costo real no escala linealmente con el área: depende del rendimiento (\textit{yield}), que cae con el área; de los costos fijos de máscaras y de las corridas multi-proyecto (MPW), que tienen un tamaño mínimo; del encapsulado, las pruebas y los pads de I/O que aquí no se consideran; y del volumen. También usamos el área del die, no la de las celdas.
 
-\paragraph{Decisión con mayor impacto.} La elección de la estrategia de memoria tuvo el mayor impacto: pasar de la ROM combinacional a la memoria unificada de flip-flops multiplicó el área del die por 3,9 (de 0,436 a 1,695 mm$^2$) y el costo estimado de US\$10.024 a US\$38.985. En comparación, variar la utilización entre 30 y 60 \% cambió el costo en un factor de 2,0, y el cambio de RTL de la Sección~\ref{sec:timing} lo cambió en 1,3 \%.
+\paragraph{Decisión con mayor impacto.} La elección de la estrategia de memoria tuvo el mayor impacto: pasar de la ROM combinacional a la memoria unificada de flip-flops multiplicó el área del die por 3,9 (de 0,436 a 1,695 mm$^2$) y el costo estimado de US\$10.024 a US\$38.985. El área y el costo de la estrategia 2 vienen de una corrida que no se cerró (se detuvo en el paso 43), por lo que son los del die fijado en el floorplan y no los de un diseño terminado. En comparación, variar la utilización entre 30 y 60 \% cambió el costo en un factor de 2,0, y el cambio de RTL de la Sección~\ref{sec:timing} lo cambió en 1,3 \%.
 
 %% 8. Signoff -------------------------------------------------------------------------
 \section{Signoff y layout}
@@ -619,20 +645,28 @@ DRC de Magic / LVS / antenas & 0 / 0 / 0 & 0 / 0 / 0\\
 \fuente
 \end{table}
 
-Las violaciones de \textit{slew} bajaron un 82~\%, el slack de setup en el corner lento mejoró en 19,3 ns y el área de celdas bajó un 6~\%, con el signoff igualmente limpio. A cambio, las violaciones de capacitancia máxima subieron de 7 a 20. Con este slack, el período mínimo estimado en \code{max\_ss} sería $100-56{,}56 = 43{,}4$ ns ($\approx 23$ MHz); es una extrapolación del slack de la corrida de 100 ns, no una corrida a ese período. Por falta de tiempo no se rehízo con esta configuración el resto de las secciones (síntesis, barridos y layout anotado), de modo que la corrida final del informe sigue siendo \code{final\_opt}.
+Las violaciones de \textit{slew} bajaron un 82~\%, el slack de setup en el corner lento mejoró en 19,3 ns y el área de celdas bajó un 6~\%, con el signoff igualmente limpio. A cambio, las violaciones de capacitancia máxima subieron de 7 a 20. Esta configuración no se aplicó al resto de las secciones (síntesis, barridos y layout anotado), de modo que la corrida final del informe sigue siendo \code{final\_opt}.
 
-\subsection{Violación de antena: caso documentado}
+\subsection{Violación de antena y corto en Metal2: casos documentados}
 
-Durante el desarrollo, tras el ruteo global, el reporte de antenas (paso 40) listó \textbf{14 redes con violación}, entre ellas \code{rf\_wdata[1]}. Los pines receptores eran entradas de los buffers de \textit{fanout} del register file (por ejemplo \code{u\_soc.u\_core.u\_rf/fanout80/I}, \code{fanout81} y \code{fanout74}). Una violación de antena ocurre cuando un cable largo de metal, conectado solo a la compuerta de un transistor durante la fabricación, acumula carga del plasma y puede dañar el óxido.
+Los pasos 40, 42, 44 y 46 de esta sección son de la corrida final (\code{final\_opt}). Tras el ruteo global, el reporte de antenas (paso 40) listó \textbf{14 redes con violación}: nueve son bits del bus de escritura del register file (\code{u\_soc.u\_core.rf\_wdata[1]}, \code{[9]}, \code{[10]}, \code{[13]}, \code{[19]}, \code{[21]}, \code{[22]}, \code{[29]} y \code{[31]}) y cinco son otras redes (\code{net596}, \code{net734}, \code{u\_soc.u\_core.u\_rf/\_0634\_}, \code{u\_rf/net288} y \code{u\_rf/net68}). Los pines receptores eran entradas de los buffers de \textit{fanout} del register file; por ejemplo, \code{u\_soc.u\_core.u\_rf/fanout80/I} y \code{fanout81/I} (red \code{rf\_wdata[10]}, en $(136{,}6;\ 482{,}2)$ y $(154{,}6;\ 474{,}3)$ $\mu$m) y \code{fanout74/I} (red \code{rf\_wdata[13]}, en $(262{,}6;\ 478{,}2)$ $\mu$m). Una violación de antena ocurre cuando un cable largo de metal, conectado solo a la compuerta de un transistor durante la fabricación, acumula carga del plasma y puede dañar el óxido.
 
-La zona afectada corresponde al register file, entre $y\approx314$ y $651$ $\mu$m. El paso 42 (reparación de antenas) las resolvió con dos mecanismos:
+Los pines de las 14 redes están repartidos por todo el die (entre $x\approx32$ y $600$ $\mu$m y entre $y\approx153$ y $627$ $\mu$m, Figura~\ref{fig:antenas}), no concentrados en un bloque. El paso 42 (reparación de antenas) las resolvió con dos mecanismos:
 \begin{itemize}
   \item \textit{jumpers}: cambio de capa de metal del tramo largo, de forma que la compuerta quede conectada por un tramo corto durante la fabricación de cada capa;
   \item diodos de antena: celdas \code{ANTENNA\_*} conectadas a la red, que derivan la carga al sustrato.
 \end{itemize}
 El reporte del paso 46 quedó vacío, es decir, sin violaciones residuales. El DEF final contiene 8 instancias \code{ANTENNA\_*} (por ejemplo, \code{ANTENNA\_8} en $(57{,}7;\ 541{,}0)$ $\mu$m). Como se corrigieron, no queda ninguna violación que requiera justificación.
 
-\paragraph{Corto en Metal2 durante el ruteo detallado.} En el paso 44 (ruteo detallado) apareció también una violación de DRC: tras la iteración de optimización 3 quedó \textbf{1 violación, un corto (\textit{short}) en Metal2}, luego de bajar desde 2.004 violaciones en la iteración 0 (669 y 545 en las iteraciones 1 y 2). La iteración siguiente (4, de \textit{guides tiles}) la eliminó y el ruteo terminó con 0 violaciones. Luego, el chequeo de antenas del mismo paso encontró 5 redes con violación, y se ejecutó la iteración 1 de reparación de antenas, que volvió a rutear (100, 16 y 13 violaciones de DRC, y 0 al final). La verificación de antenas posterior dio 0 redes con violación. Un corto en una capa de metal habría sido un defecto grave en el chip, pero aquí fue un estado transitorio del ruteador, corregido antes de terminar el paso, y la verificación independiente de Magic (DRC) y la comparación de Netgen (LVS) resultaron limpias (Cuadro~\ref{tab:signoff}).
+\begin{figure}[H]
+\centering
+\SafeIncludeGraphics[width=0.85\linewidth]{figuras/layout_antenas.png}
+\caption{Ubicación de los pines de las 14 redes con violación de antena del paso 40, de los receptores \code{fanout74}, \code{fanout80} y \code{fanout81} y de los ocho diodos \code{ANTENNA\_*} del DEF final (\code{final\_opt}). Los colores de las celdas indican el módulo (register file, ALU, contador de ciclos).}
+\label{fig:antenas}
+\fuente
+\end{figure}
+
+\paragraph{Corto en Metal2 durante el ruteo detallado.} Este caso no es de antena sino de DRC. En el paso 44 (ruteo detallado) apareció una violación de DRC: tras la iteración de optimización 3 quedó \textbf{1 violación, un corto (\textit{short}) en Metal2}, luego de bajar desde 2.004 violaciones en la iteración 0 (669 y 545 en las iteraciones 1 y 2). La iteración siguiente (4, de \textit{guides tiles}) la eliminó y el ruteo terminó con 0 violaciones. Luego, el chequeo de antenas del mismo paso encontró 5 redes con violación, y se ejecutó la iteración 1 de reparación de antenas, que volvió a rutear (100, 16 y 13 violaciones de DRC, y 0 al final). La verificación de antenas posterior dio 0 redes con violación. Un corto en una capa de metal habría sido un defecto grave en el chip, pero aquí fue un estado transitorio del ruteador, corregido antes de terminar el paso, y la verificación independiente de Magic (DRC) y la comparación de Netgen (LVS) resultaron limpias (Cuadro~\ref{tab:signoff}).
 
 
 \subsection{Layout anotado}
@@ -654,6 +688,8 @@ Contador de ciclos & 394--463 & 20--184 & 114\\
 \end{tabular}
 \fuente
 \end{table}
+
+Las cajas son envolventes (el rectángulo mínimo que contiene todas las celdas del módulo), por eso la de la ALU cae dentro de la del register file: las celdas de ambos módulos están mezcladas en esa zona.
 
 \begin{figure}[H]
 \centering
@@ -679,7 +715,9 @@ Contador de ciclos & 394--463 & 20--184 & 114\\
 
 Se simuló el netlist post-síntesis (sin retardos anotados) con Verilator, usando los modelos funcionales de las celdas de GF180 y el testbench del juego, que presiona los botones en ciclos de reloj definidos y simula el rebote del pulsador. Los tres flip-flops del PDK están definidos como primitivas de usuario (UDP) que Verilator no soporta, por lo que se escribieron modelos funcionales propios (\code{ff\_gf180\_modelos.v}); las celdas combinacionales se tomaron del PDK, excluyendo las de tipo \textit{hold} y de fuerza débil.
 
-\paragraph{Espera acortada.} Con las constantes reales, la espera de tres segundos son $3\cdot10^{7}$ ciclos, impracticables de simular. Se sintetizó una variante (\code{sim\_corto}) con constantes cortas, usada en \textbf{ambas} simulaciones (RTL y netlist), como exige el enunciado (Cuadro~\ref{tab:simconst}). El netlist de esta variante tiene 5.644 celdas y 164.585 $\mu$m$^2$.
+\paragraph{Espera acortada.} Con las constantes reales, la espera de tres segundos son $3\cdot10^{7}$ ciclos, impracticables de simular. Se sintetizó una variante (\code{sim\_corto}) con constantes cortas, usada en \textbf{ambas} simulaciones (RTL y netlist), como permite el enunciado, que indica que se \textit{puede} acortar la espera (Cuadro~\ref{tab:simconst}). El netlist de esta variante tiene 5.644 celdas y 164.585 $\mu$m$^2$.
+
+\paragraph{Por qué se simula \code{sim\_corto} y no \code{final\_opt}.} El netlist de \code{final\_opt} lleva las constantes de 10 MHz del juego real (30.000.000 ciclos de espera), que el testbench no puede esperar. \code{sim\_corto} es solo la síntesis (sin place and route) del mismo RTL que \code{final\_opt}, incluido el comparador de saltos, y \textbf{lo único que difiere entre ambos es la ROM de constantes}.
 
 \begin{table}[H]
 \centering
@@ -700,13 +738,13 @@ Parpadeo & 2.000\\
 
 \subsection{Resultados}
 
-Se ejecutó con \code{make sim-post NETLIST=}\allowbreak\code{librelane/runs/sim\_corto/}\allowbreak\code{06-yosys-synthesis/asic\_top.nl.v}. El testbench juega 10 rondas, incluyendo una con un botón incorrecto y otra con un botón sostenido. Resultado:
+El netlist simulado es \code{resultados/sim\_corto/}\allowbreak\code{sintesis/asic\_top.nl.v}, copiado al repositorio porque \code{librelane/runs/} está en \code{.gitignore}; se ejecutó con \code{make sim-post NETLIST=} apuntando a ese archivo. El testbench juega 10 rondas, incluyendo una con un botón incorrecto y otra con un botón sostenido. Resultado:
 \begin{itemize}
   \item \code{JUEGO: OK}, 0 fallos y 66 de 66 eventos verificados.
   \item Trazas de la simulación RTL y del netlist: \textbf{idénticas} (mensaje \code{TRAZAS IGUALES}).
 \end{itemize}
 
-\paragraph{Ronda correcta.} Los estímulos se aplican en los mismos ciclos en ambas simulaciones y las trazas de LEDs y displays coinciden ciclo a ciclo. El tiempo mostrado (en décimas) y el número de ciclos medidos son por lo tanto iguales en el RTL y en el netlist. La traza de la primera ronda en ambas simulaciones es:
+\paragraph{Ronda correcta.} Los estímulos se aplican en los mismos ciclos en ambas simulaciones y las trazas de LEDs y displays coinciden ciclo a ciclo. El tiempo mostrado (en décimas) y el número de ciclos medidos son por lo tanto iguales en el RTL y en el netlist. En la primera ronda (reacción de 3 décimas, $\mathrm{TENTH}=1.000$ ciclos) el LED objetivo se enciende en el ciclo 24.289 y el display cambia a \code{3} (\code{1001111} en \code{seg2}) en el ciclo 27.873, es decir, \textbf{3.584 ciclos medidos} después del LED; ese valor es el mismo en el RTL y en el netlist. La traza de la primera ronda en ambas simulaciones es:
 
 \begin{samepage}
 \begin{lstlisting}[caption={Inicio de la traza (RTL y netlist, idénticas).},label={lst:traza}]
@@ -720,7 +758,17 @@ TRACE cyc=27887 led=1111 seg1=0111111 seg2=1001111
 \end{lstlisting}
 \end{samepage}
 
-\paragraph{Pulsación incorrecta.} El testbench aplica un botón distinto del LED objetivo y verifica que los displays muestren \code{EE} y que la ronda se reinicie (comprobación \code{"boton incorrecto: los displays no muestran EE"}). Presionar durante la fase de los cuatro LEDs encendidos no se considera un error, y esa condición también se verifica. Esta regla se cumple tanto en el RTL como en el netlist, por lo que ambos reinician la ronda con el mismo comportamiento.
+\paragraph{Pulsación incorrecta.} El testbench aplica un botón distinto del LED objetivo y verifica que los displays muestren \code{EE} y que la ronda se reinicie (comprobación \code{"boton incorrecto: los displays no muestran EE"}). Presionar durante la fase de los cuatro LEDs encendidos no se considera un error, y esa condición también se verifica. Esta regla se cumple tanto en el RTL como en el netlist, por lo que ambos reinician la ronda con el mismo comportamiento. La traza de la ronda 3 (la que lleva el botón incorrecto) es la siguiente: el LED objetivo aparece en el ciclo 76.913; 1.020 ciclos después (una décima de espera del testbench más la pulsación y su detección) los dos displays pasan a \code{EE} (\code{1111001} en \code{seg1} y \code{seg2}); a los 7 ciclos los cuatro LEDs vuelven a encenderse (la ronda se reinicia), y el nuevo LED objetivo aparece en el ciclo 98.643, 20.703 ciclos después, es decir, tras una nueva fase de 4 LEDs de al menos 20.000 ciclos. La ronda repetida termina con la reacción de 12 décimas (\code{12} en los displays, ciclo 111.317).
+
+\begin{samepage}
+\begin{lstlisting}[caption={Traza de la ronda con botón incorrecto (RTL y netlist, idénticas).},label={lst:trazaerr}]
+TRACE cyc=76913  led=0100 seg1=0111111 seg2=0000111
+TRACE cyc=77933  led=0100 seg1=1111001 seg2=1111001
+TRACE cyc=77940  led=1111 seg1=1111001 seg2=1111001
+TRACE cyc=98643  led=1000 seg1=1111001 seg2=1111001
+TRACE cyc=111317 led=1000 seg1=0000110 seg2=1011011
+\end{lstlisting}
+\end{samepage}
 
 %% 10. Conclusiones ------------------------------------------------------------------
 \section{Conclusiones}
@@ -777,7 +825,7 @@ TRACE cyc=27887 led=1111 seg1=0111111 seg2=1001111
 \hline
 \textbf{Propósito del uso} & Adaptación del RTL de FPGA a ASIC (Verilog), extensión del ensamblador en Python y generación de la ROM del juego, y creación de testbenches y de la simulación post-síntesis. Creación de las configuraciones y scripts de LibreLane para las corridas, los barridos de reloj y de utilización, y los experimentos de timing. Análisis de los reportes de síntesis, timing, DRC, LVS y antenas, y elaboración de las figuras (Python). Explicación de los resultados y del flujo para la defensa. Apoyo en la escritura del informe en LaTeX a partir del repositorio y de los resultados de las corridas, y en la redacción del README y la organización del repositorio. \\
 \hline
-\textbf{Descripción de integración} & Claude se usó como apoyo en todas las etapas del proyecto, de forma iterativa: el grupo planteaba el problema o el resultado que necesitaba, Claude proponía y escribía el código, el script o el texto, y el grupo lo revisaba, lo ejecutaba y pedía correcciones. En la parte técnica, Claude escribió el RTL de ASIC (\code{asic\_top}, el register file con flip-flops, la ROM generada por el ensamblador y el comparador de saltos), la extensión del ensamblador y sus pruebas, los testbenches y la simulación post-síntesis, y los archivos de configuración y los scripts de LibreLane. Los integrantes del grupo ejecutaron todas las corridas del flujo en sus computadores (con Docker y WSL2), copiaron los resultados y los reportes al repositorio, y verificaron los números antes de incluirlos en el informe. Claude leyó esos reportes y métricas para obtener las cifras de síntesis, timing, área, DRC, LVS y antenas, y construyó las tablas y los gráficos del informe; cada dato proviene de una corrida del grupo y no se estimó sin respaldo, salvo las extrapolaciones indicadas expresamente. Claude también redactó el informe en LaTeX a partir del repositorio y de los resultados, escribió el README y la guía de comandos para la defensa, y apoyó la organización del repositorio y los mensajes de los commits, que realizó el grupo desde sus cuentas. Todo el contenido fue revisado por el grupo, que es responsable de entenderlo y de poder defenderlo. \completar{Josefa y Martín: completar su descripción de uso}\\
+\textbf{Descripción de integración} & Claude se usó de forma iterativa: el grupo planteaba el problema, Claude escribía el código, el script o el texto, y el grupo lo revisaba, lo ejecutaba y pedía correcciones. Claude escribió el RTL de ASIC, la extensión del ensamblador, los testbenches, la simulación post-síntesis y las configuraciones y scripts de LibreLane. El grupo ejecutó todas las corridas en sus computadores y verificó los resultados; Claude leyó los reportes para armar las tablas y gráficos, y redactó el informe, el README y la guía de la defensa. Todo el contenido fue revisado por el grupo, que es responsable de poder explicarlo y defenderlo. \\
 \hline
 \end{tabularx}
 \end{table}
